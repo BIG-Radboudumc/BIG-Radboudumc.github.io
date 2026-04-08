@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIG-MRI @ MICCAI 2026 | Breast Imaging Group MRI Challenge </title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Syne:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Core palette — unchanged */
+            --vermillion: #e63b2e;
+            --ultramarine: #1e3a8a;
+            --ochre: #c9a227;
+            --violet: #5b21b6;
+            --forest: #14532d;
+            --gold: #c9a227;
+            /* Global dark palette */
+            --bg: #0c0e14;
+            --bg-alt: #111520;
+            --bg-surface: #171c28;
+            --bg-elevated: #1d2334;
+            --border: rgba(255,255,255,0.07);
+            --border-strong: rgba(255,255,255,0.14);
+            --text: rgba(255,255,255,0.82);
+            --text-muted: rgba(255,255,255,0.52);
+            --text-bright: #f0f0f0;
+            --white: #fefefe;
+            --black: #0a0a0a;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            cursor: crosshair;
+            font-size: 1.15rem;
+            line-height: 1.8;
+            text-align: justify;
+        }
+        ::selection { background: var(--vermillion); color: var(--white); }
+
+        /* Global link styles — larger */
+        a { color: var(--ochre); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(201,162,39,0.35); transition: color 0.2s ease, text-decoration-color 0.2s ease; font-size: 1.05em; }
+        a:hover { color: var(--vermillion); text-decoration-color: var(--vermillion); }
+
+        .cursor-dot {
+            position: fixed; width: 8px; height: 8px;
+            background: var(--vermillion); border-radius: 50%;
+            pointer-events: none; z-index: 9999;
+            mix-blend-mode: difference; transition: transform 0.1s ease;
+        }
+
+        /* ── NAV ── */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            padding: 1.5rem 3rem; display: flex;
+            justify-content: space-between; align-items: center;
+            mix-blend-mode: difference;
+        }
+        .nav-logo { font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.3em; color: var(--white); text-transform: uppercase; text-decoration: none; }
+        .nav-links { display: flex; gap: 2.2rem; list-style: none; }
+        .nav-links a { font-family: 'Space Mono', monospace; font-size: 0.75rem; letter-spacing: 0.1em; color: var(--white); text-decoration: none; text-transform: uppercase; position: relative; }
+        .nav-links a::before { content: '●'; position: absolute; left: -1rem; opacity: 0; transition: opacity 0.3s ease; }
+        .nav-links a:hover::before { opacity: 1; }
+
+        /* ── HERO ── */
+        .hero { min-height: 100vh; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--black); }
+        .hero-canvas { position: absolute; inset: 0; overflow: hidden; }
+        .paint-stroke { position: absolute; border-radius: 50%; filter: blur(80px); animation: drift 20s ease-in-out infinite; }
+        .paint-stroke:nth-child(1) { width: 600px; height: 600px; background: var(--vermillion); top: -20%; left: -10%; }
+        .paint-stroke:nth-child(2) { width: 500px; height: 500px; background: var(--ultramarine); bottom: -20%; right: -10%; animation-delay: -5s; }
+        .paint-stroke:nth-child(3) { width: 400px; height: 400px; background: var(--ochre); top: 50%; left: 50%; transform: translate(-50%, -50%); animation-delay: -10s; }
+        .paint-stroke:nth-child(4) { width: 300px; height: 300px; background: var(--violet); top: 20%; right: 20%; animation-delay: -15s; }
+        @keyframes drift { 0%,100%{transform:translate(0,0) scale(1)} 25%{transform:translate(50px,-30px) scale(1.1)} 50%{transform:translate(-30px,50px) scale(0.9)} 75%{transform:translate(-50px,-20px) scale(1.05)} }
+
+        .hero-content { position: relative; z-index: 2; text-align: center; padding: 2rem; max-width: 1000px; }
+        .hero-eyebrow { font-family: 'Space Mono', monospace; font-size: 0.75rem; letter-spacing: 0.4em; text-transform: uppercase; color: var(--ochre); margin-bottom: 2rem; opacity: 0; animation: fadeIn 1s ease forwards 0.5s; }
+        .hero-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(4rem, 12vw, 10rem); font-weight: 300; line-height: 0.9; color: var(--white); margin-bottom: 2rem; opacity: 0; animation: revealTitle 1.2s ease forwards 0.8s; text-align: center; }
+        .hero-title em { font-style: italic; display: block; font-size: 0.6em; color: var(--vermillion); margin-top: 0.5rem; }
+        .hero-meta { display: flex; justify-content: center; gap: 4rem; font-family: 'Space Mono', monospace; font-size: 0.8rem; color: rgba(255,255,255,0.6); letter-spacing: 0.1em; margin-top: 3rem; opacity: 0; animation: fadeIn 1s ease forwards 1.2s; text-align: center; }
+        .hero-meta span { display: flex; align-items: center; gap: 0.5rem; }
+        .hero-meta .dot { width: 6px; height: 6px; background: var(--vermillion); border-radius: 50%; }
+        .scroll-indicator { position: absolute; bottom: 3rem; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 0.5rem; color: rgba(255,255,255,0.4); font-family: 'Space Mono', monospace; font-size: 0.65rem; letter-spacing: 0.2em; animation: bounce 2s ease-in-out infinite; }
+        .scroll-indicator::after { content:''; width:1px; height:40px; background: linear-gradient(to bottom, rgba(255,255,255,0.4), transparent); }
+        @keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(10px)} }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes revealTitle { from{opacity:0;transform:translateY(50px)} to{opacity:1;transform:translateY(0)} }
+
+        /* ── GLOBAL SECTIONS ── */
+        section { padding: 5rem 4rem; position: relative; }
+        .section-number { font-family: 'Syne', sans-serif; font-size: 8rem; font-weight: 800; color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,0.04); position: absolute; top: 3rem; right: 4rem; line-height: 1; pointer-events: none; }
+        .section-label { font-family: 'Space Mono', monospace; font-size: 0.7rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--ochre); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 1rem; }
+        .section-label::before { content:''; width: 30px; height: 1px; background: var(--ochre); }
+        .section-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 300; line-height: 1.1; margin-bottom: 1.5rem; max-width: 700px; color: var(--text-bright); text-align: left; }
+
+        /* ── ABOUT ── */
+        #about { background: var(--bg-alt); display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+        .about-visual { position: relative; height: 550px; }
+        .art-frame { position: absolute; border: 3px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; overflow: hidden; transition: all 0.5s cubic-bezier(0.4,0,0.2,1); background: var(--bg); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .art-frame:hover { z-index: 10; transform: scale(1.08) rotate(0deg) !important; box-shadow: 0 30px 60px rgba(0,0,0,0.6); }
+        .art-frame img { width:100%; height:100%; object-fit: cover; object-position: center; transition: transform 0.5s ease; }
+        .art-frame:hover img { transform: scale(1.05); }
+        .art-frame:nth-child(1) { width: 260px; height: 340px; top: 0; left: 0; transform: rotate(-3deg); }
+        .art-frame:nth-child(2) { width: 280px; height: 180px; top: 45%; right: 0; transform: rotate(4deg); }
+        .art-frame:nth-child(3) { width: 300px; height: 160px; bottom: 0; left: 15%; transform: rotate(-5deg); }
+        .art-frame-label { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--text-bright); letter-spacing: 0.15em; text-transform: uppercase; background: var(--bg-surface); padding: 4px 10px; }
+        .about-content p { font-size: 1.3rem; line-height: 1.85; margin-bottom: 1.5rem; color: var(--text); }
+        .about-content p:first-of-type::first-letter { font-size: 4rem; float: left; line-height: 1; margin-right: 0.5rem; font-weight: 600; color: var(--vermillion); }
+
+        /* ── MANIFESTO ── */
+        .manifesto-wrap { background: var(--bg-alt); padding: 0 4rem 4rem; }
+        .manifesto { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+        .manifesto-card { padding: 2rem; background: var(--bg-surface); border: 1px solid var(--border); position: relative; transition: all 0.4s ease; }
+        .manifesto-card::before { content:''; position: absolute; top: 0; left: 0; width:100%; height: 3px; background: var(--ochre); transform: scaleX(0); transform-origin: left; transition: transform 0.4s ease; }
+        .manifesto-card:hover::before { transform: scaleX(1); }
+        .manifesto-card:hover { transform: translateY(-6px); box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
+        .manifesto-number { font-family: 'Syne', sans-serif; font-size: 3rem; font-weight: 800; color: rgba(255,255,255,0.04); margin-bottom: 0.75rem; }
+        .manifesto-card h3 { font-family: 'Syne', sans-serif; font-size: 1.05rem; font-weight: 600; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-bright); }
+        .manifesto-card p { font-size: 1.1rem; color: var(--text-muted); line-height: 1.75; }
+
+        /* ── TOPICS ── */
+        #topics { background: var(--bg); color: var(--white); overflow: hidden; }
+        #topics .section-label { color: var(--ochre); }
+        #topics .section-label::before { background: var(--ochre); }
+        .topics-marquee { display: flex; gap: 3rem; padding: 3rem 0; animation: marquee 30s linear infinite; }
+        .topics-marquee:hover { animation-play-state: paused; }
+        @keyframes marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+        .topic-pill { flex-shrink: 0; padding: 0.85rem 1.75rem; border: 1px solid rgba(255,255,255,0.15); border-radius: 100px; font-family: 'Space Mono', monospace; font-size: 0.85rem; letter-spacing: 0.05em; white-space: nowrap; transition: all 0.3s ease; cursor: default; }
+        .topic-pill:hover { background: var(--white); color: var(--bg); border-color: var(--white); }
+        .topics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); margin-top: 3rem; }
+        .topic-cell { background: var(--bg); padding: 2rem 1.75rem; position: relative; overflow: hidden; transition: all 0.4s ease; }
+        .topic-cell::before { content:''; position: absolute; inset: 0; background: linear-gradient(135deg, var(--vermillion), var(--violet)); opacity: 0; transition: opacity 0.4s ease; }
+        .topic-cell:hover::before { opacity: 1; }
+        .topic-cell span { position: relative; z-index: 1; }
+        .topic-index { display: block; font-family: 'Syne', sans-serif; font-size: 0.7rem; font-weight: 700; color: var(--vermillion); margin-bottom: 0.6rem; transition: color 0.4s ease; }
+        .topic-cell:hover .topic-index { color: var(--white); }
+        .topic-name { display: block; font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; line-height: 1.45; color: rgba(255,255,255,0.75); transition: color 0.4s ease; }
+        .topic-cell:hover .topic-name { color: var(--white); }
+
+        /* ── DATES ── */
+        #dates { background: var(--bg-alt); position: relative; }
+        .dates-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 4rem; margin-top: 2.5rem; }
+        .date-highlight { position: sticky; top: 6rem; height: fit-content; }
+        .date-highlight-box { padding: 2.5rem; background: var(--bg-surface); border: 1px solid var(--border); position: relative; overflow: hidden; }
+        .date-highlight-box::before { content:''; position: absolute; top:-50%; right:-50%; width:100%; height:100%; background: radial-gradient(circle, var(--vermillion) 0%, transparent 70%); opacity: 0.15; }
+        .date-month { font-family: 'Syne', sans-serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; color: var(--ochre); position: relative; }
+        .date-day { font-family: 'Cormorant Garamond', serif; font-size: 8rem; font-weight: 300; line-height: 1; position: relative; color: var(--text-bright); }
+        .date-year { font-family: 'Space Mono', monospace; font-size: 1rem; color: var(--text-muted); position: relative; }
+        .date-location { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-family: 'Space Mono', monospace; font-size: 0.8rem; color: var(--text-muted); line-height: 1.8; position: relative; }
+        .timeline { padding-top: 1.5rem; }
+        .timeline-section { margin-bottom: 2.5rem; }
+        .timeline-section-title { font-family: 'Syne', sans-serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ochre); margin-bottom: 1.25rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--ochre); }
+        .timeline-item { display: grid; grid-template-columns: 140px 1fr; gap: 1.5rem; padding: 1.25rem 0; border-bottom: 1px solid var(--border); transition: all 0.3s ease; }
+        .timeline-item:hover { padding-left: 1rem; background: rgba(255,255,255,0.02); }
+        .timeline-date { font-family: 'Space Mono', monospace; font-size: 0.8rem; color: var(--vermillion); padding-top: 0.25rem; }
+        .timeline-content h4 { font-family: 'Syne', sans-serif; font-size: 1.05rem; font-weight: 600; margin-bottom: 0.2rem; color: var(--text-bright); }
+        .timeline-content p { font-size: 1.05rem; color: var(--text-muted); }
+        .timeline-notice { margin-top: 1.5rem; padding: 1.25rem; background: rgba(230, 59, 46, 0.06); border-left: 3px solid var(--vermillion); font-style: italic; color: var(--text-muted); font-size: 1.05rem; }
+
+        /* ── PARTICIPATE ── */
+        #participate { background: var(--bg); position: relative; }
+        .tracks-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0; margin-top: 2.5rem; border: 1px solid var(--border-strong); }
+        .track { padding: 2.5rem; position: relative; background: var(--bg-surface); transition: all 0.4s ease; }
+        .track:first-child { border-right: 1px solid var(--border-strong); }
+        .track:hover { background: var(--bg-elevated); }
+        .track:hover .track-number { color: var(--vermillion); }
+        .track-number { font-family: 'Syne', sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; color: var(--ochre); margin-bottom: 1.25rem; transition: color 0.4s ease; }
+        .track h3 { font-family: 'Cormorant Garamond', serif; font-size: 2.5rem; font-weight: 300; margin-bottom: 0.75rem; color: var(--text-bright); }
+        .track > p { font-size: 1.2rem; color: var(--text); opacity: 0.8; margin-bottom: 1.5rem; line-height: 1.8; }
+        .track-specs { border-top: 1px solid var(--border); padding-top: 1.5rem; }
+        .track-specs dl { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+        .track-specs dt { font-family: 'Space Mono', monospace; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+        .track-specs dd { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 500; text-align: right; color: var(--text-bright); }
+        .submission-banner { margin-top: 2rem; padding: 2.5rem 3rem; background: linear-gradient(135deg, var(--ultramarine), var(--violet)); color: var(--white); text-align: center; position: relative; overflow: hidden; }
+        .submission-banner::before { content:''; position: absolute; top:-50%; left:-50%; width:200%; height:200%; background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.08) 0%, transparent 50%); pointer-events: none; }
+        .submission-banner-label { font-family: 'Space Mono', monospace; font-size: 0.7rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--ochre); margin-bottom: 0.75rem; position: relative; }
+        .submission-banner h4 { font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 300; margin-bottom: 0.75rem; position: relative; color: var(--white); }
+        .submission-banner p { font-size: 1.15rem; color: rgba(255,255,255,0.8); margin-bottom: 1.25rem; line-height: 1.75; position: relative; }
+        .submission-banner .track-note { font-family: 'Space Mono', monospace; font-size: 0.8rem; color: var(--ochre); margin-bottom: 1.5rem; position: relative; padding: 0.75rem 1.5rem; border: 1px solid rgba(201, 162, 39, 0.4); display: inline-block; }
+        .btn-submit { display: inline-block; padding: 1.25rem 3rem; background: var(--white); color: var(--black); font-family: 'Space Mono', monospace; font-size: 0.85rem; letter-spacing: 0.2em; text-transform: uppercase; text-decoration: none; transition: all 0.3s ease; position: relative; }
+        .btn-submit:hover { background: var(--ochre); color: var(--black); transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+        .presentation-info { margin-top: 1.5rem; padding: 2.5rem; background: var(--bg-surface); border: 1px solid var(--border); display: grid; grid-template-columns: auto 1fr; gap: 2.5rem; align-items: center; }
+        .presentation-icon { width: 70px; height: 70px; border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; color: var(--text-bright); }
+        .presentation-info h4 { font-family: 'Syne', sans-serif; font-size: 1.05rem; font-weight: 600; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-bright); }
+        .presentation-info p { font-size: 1.1rem; color: var(--text); line-height: 1.75; }
+
+        /* ── CHALLENGES ── */
+        #challenges { background: var(--bg-alt); color: var(--white); position: relative; padding: 5rem 4rem; }
+        #challenges .section-label { color: var(--ochre); }
+        #challenges .section-label::before { background: var(--ochre); }
+        #challenges .section-title { color: var(--text-bright); }
+        .challenges-intro { font-size: 1.3rem; line-height: 1.85; color: var(--text); max-width: none; margin-bottom: 2rem; }
+        .challenges-intro strong { color: var(--text-bright); }
+
+        .pc-header { display: flex; align-items: center; gap: 2rem; margin-bottom: 1.75rem; padding: 1.75rem 2rem; background: var(--bg-surface); border: 1px solid var(--border); }
+        .pc-header img { height: 90px; width: auto; display: block; }
+        .pc-header-text h3 { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 700; margin: 0 0 0.3rem; color: var(--text-bright); text-align: left; }
+        .pc-header-text p { font-family: 'Space Mono', monospace; font-size: 0.85rem; color: var(--text-muted); letter-spacing: 0.05em; margin: 0; text-align: left; }
+        .pc-header-text p .pc-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--ochre); margin: 0 0.5rem; vertical-align: middle; }
+
+        .challenge-subnav { display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+        .challenge-subnav a { font-family: 'Space Mono', monospace; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); text-decoration: none; padding: 0.35rem 0; border-bottom: 2px solid transparent; transition: all 0.3s ease; }
+        .challenge-subnav a:hover { color: var(--white); border-bottom-color: var(--ochre); }
+
+        .challenge-subsection { margin-bottom: 0; padding-bottom: 2rem; }
+        .challenge-subsection-label { font-family: 'Space Mono', monospace; font-size: 0.7rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--ochre); margin-bottom: 0.5rem; }
+        .challenge-subsection h3 { font-family: 'Cormorant Garamond', serif; font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 300; line-height: 1.15; margin-bottom: 1rem; color: var(--text-bright); text-align: left; }
+        .challenge-subsection h4 { font-family: 'Syne', sans-serif; font-size: 1.15rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin: 1.75rem 0 0.6rem; color: var(--text-bright); }
+        .challenge-subsection h4:first-of-type { margin-top: 0; }
+        .challenge-subsection p { font-size: 1.2rem; line-height: 1.85; color: var(--text); margin-bottom: 0.85rem; }
+        .challenge-subsection p strong { color: var(--text-bright); }
+        .challenge-subsection ul { margin: 0 0 1rem 1.5rem; }
+        .challenge-subsection ul li { font-size: 1.15rem; line-height: 1.8; color: var(--text); margin-bottom: 0.5rem; }
+        .challenge-subsection ul li strong { color: var(--text-bright); }
+
+        .challenge-tracks-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--border-strong); }
+        .challenge-track-card { padding: 2.25rem; background: var(--bg-surface); position: relative; transition: all 0.4s ease; }
+        .challenge-track-card:first-child { border-right: 1px solid var(--border-strong); }
+        .challenge-track-card:hover { background: var(--bg-elevated); }
+        .challenge-track-card:hover .challenge-track-number { color: var(--vermillion); }
+        .challenge-track-number { font-family: 'Syne', sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; color: var(--ochre); margin-bottom: 1rem; transition: color 0.4s ease; }
+        .challenge-track-card h3 { font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 300; margin-bottom: 0.6rem; color: var(--text-bright); text-align: left; }
+        .challenge-track-desc { font-size: 1.15rem; color: var(--text); line-height: 1.75; }
+        .challenge-track-link { display: inline-block; margin-top: 0.85rem; font-family: 'Space Mono', monospace; font-size: 0.85rem; letter-spacing: 0.05em; color: var(--ochre); text-decoration: none; transition: color 0.4s ease; }
+        .challenge-track-link:hover { color: var(--vermillion); }
+
+        .challenge-timeline { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--border); margin: 1rem 0; max-width: 460px; }
+        .challenge-timeline-item { padding: 1.25rem 1.5rem; background: var(--bg-surface); }
+        .challenge-timeline-item:first-child { border-right: 1px solid var(--border); }
+        .challenge-timeline-item dt { font-family: 'Syne', sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--vermillion); margin-bottom: 0.35rem; }
+        .challenge-timeline-item dd { font-family: 'Space Mono', monospace; font-size: 0.9rem; color: var(--text-bright); }
+
+        .challenge-figure-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin: 1.25rem 0; }
+        .challenge-figure { background: var(--bg-surface); border: 1px solid var(--border); padding: 0.6rem; transition: all 0.4s ease; }
+        .challenge-figure:hover { transform: translateY(-4px); box-shadow: 0 15px 40px rgba(0,0,0,0.4); }
+        .challenge-figure .img-frame { width: 100%; height: 340px; display: flex; align-items: center; justify-content: center; background: var(--bg); overflow: hidden; }
+        .challenge-figure .img-frame img { max-width:100%; max-height:100%; display: block; object-fit: contain; }
+        .challenge-figure figcaption { text-align: center; font-family: 'Space Mono', monospace; font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+        .challenge-disclaimer { margin: 0.85rem 0 1rem; padding: 0.85rem 1.25rem; background: rgba(201,162,39,0.06); border-left: 3px solid var(--ochre); font-style: italic; color: var(--text-muted); font-size: 1.05rem; line-height: 1.6; }
+
+        .challenge-prompt { margin-top: 1rem; padding: 1.5rem; background: var(--bg-surface); border: 1px solid var(--border); }
+        .challenge-prompt p { font-size: 1.15rem; line-height: 1.85; color: var(--text); margin-bottom: 0.75rem; }
+        .challenge-prompt p:last-child { margin-bottom: 0; }
+        .challenge-prompt .prompt-tags { margin-top: 0.85rem; padding-top: 0.85rem; border-top: 1px dashed var(--border); font-style: italic; color: var(--text-muted); }
+        .challenge-prompt .prompt-ellipsis { text-align: center; color: var(--text-muted); font-family: 'Space Mono', monospace; font-size: 1.2rem; margin: 0.25rem 0; }
+
+        .challenge-co-org { margin-top: 2rem; padding: 1.25rem 2rem; background: var(--bg-surface); border: 1px solid var(--border); display: flex; align-items: center; gap: 1.5rem; }
+        .challenge-co-org span { font-family: 'Space Mono', monospace; font-size: 0.8rem; color: var(--text-muted); letter-spacing: 0.1em; }
+        .challenge-co-org strong { font-family: 'Syne', sans-serif; font-size: 1.15rem; font-weight: 700; color: var(--ochre); }
+
+        .challenge-divider { width: 100%; height: 1px; background: var(--border); margin: 2rem 0; }
+
+        /* ── AWARDS ── */
+        #awards { background: var(--bg); position: relative; }
+        #awards .section-label { color: var(--ochre); }
+        #awards .section-label::before { background: var(--ochre); }
+        .awards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 2rem; }
+        .award-card { padding: 2.5rem; background: var(--bg-surface); border: 1px solid var(--border); position: relative; overflow: hidden; transition: all 0.4s ease; }
+        .award-card::before { content:''; position: absolute; top: 0; left: 0; width:100%; height: 3px; background: linear-gradient(90deg, var(--ochre), var(--vermillion)); }
+        .award-card:hover { transform: translateY(-6px); box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
+        .award-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+        .award-card h3 { font-family: 'Syne', sans-serif; font-size: 1.15rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; color: var(--text-bright); }
+        .award-amount { font-family: 'Cormorant Garamond', serif; font-size: 3.5rem; font-weight: 300; color: var(--ochre); line-height: 1.2; margin-bottom: 0.75rem; }
+        .award-card > p { font-size: 1.1rem; color: var(--text); line-height: 1.75; }
+        .award-sponsor-tag { margin-top: 1.25rem; font-family: 'Space Mono', monospace; font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); }
+        .awards-ceremony-note { margin-top: 1.5rem; padding: 1.25rem; background: rgba(201,162,39,0.06); border-left: 3px solid var(--ochre); font-style: italic; color: var(--text-muted); font-size: 1.05rem; line-height: 1.7; }
+
+        /* ── SPEAKERS ── */
+        #speakers { background: var(--bg-alt); }
+        .speakers-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-top: 2.5rem; }
+        .speaker-card { position: relative; background: var(--bg-surface); border: 1px solid var(--border); padding: 1.75rem; transition: all 0.4s ease; }
+        .speaker-card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+        .speaker-avatar { width:100%; aspect-ratio: 1; background: linear-gradient(135deg, var(--ultramarine), var(--violet)); margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 3rem; font-style: italic; color: rgba(255,255,255,0.2); position: relative; overflow: hidden; }
+        .speaker-avatar img { width:100%; height:100%; object-fit: cover; object-position: center top; position: absolute; inset: 0; z-index: 1; }
+        .speaker-avatar::after { content:''; position: absolute; inset: 0; z-index: 2; background: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.06'/%3E%3C/svg%3E"); pointer-events: none; }
+        .speaker-name { font-family: 'Syne', sans-serif; font-size: 1.15rem; font-weight: 600; margin-bottom: 0.2rem; }
+        .speaker-name a { color: var(--text-bright); text-decoration: none; transition: color 0.3s ease; font-size: 1em; }
+        .speaker-name a:hover { color: var(--vermillion); }
+        .speaker-affiliation { font-family: 'Space Mono', monospace; font-size: 0.75rem; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 0.75rem; }
+        .speaker-bio { font-size: 1.05rem; color: var(--text); line-height: 1.65; }
+        .speaker-status { position: absolute; top: 0.85rem; right: 0.85rem; padding: 0.25rem 0.5rem; color: var(--white); font-family: 'Space Mono', monospace; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; z-index: 3; }
+        .speaker-status.confirmed { background: var(--forest); }
+        .speaker-status.pending { background: rgba(255,255,255,0.15); }
+
+        /* ── COMMITTEE ── */
+        #committee { background: var(--bg); }
+        .organizers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 2.5rem; }
+        .organizer-card { padding: 2rem; background: var(--bg-surface); border: 1px solid var(--border); transition: all 0.3s ease; text-align: center; }
+        .organizer-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,0.35); }
+        .organizer-photo { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin: 0 auto 1.25rem; border: 3px solid var(--border-strong); display: block; }
+        .organizer-role { font-family: 'Space Mono', monospace; font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--vermillion); margin-bottom: 0.6rem; }
+        .organizer-name { font-family: 'Syne', sans-serif; font-size: 1.15rem; font-weight: 600; margin-bottom: 0.2rem; }
+        .organizer-name a { color: var(--text-bright); text-decoration: none; transition: color 0.3s ease; font-size: 1em; }
+        .organizer-name a:hover { color: var(--vermillion); }
+        .organizer-affiliation { font-size: 1.05rem; color: var(--text-muted); }
+
+        /* ── SPONSORS ── */
+        #sponsors { background: var(--bg-surface); color: var(--white); text-align: center; padding: 6rem 4rem; position: relative; overflow: hidden; }
+        #sponsors::before { content: 'SUPPORT'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: 'Syne', sans-serif; font-size: 20vw; font-weight: 800; color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,0.02); pointer-events: none; }
+        #sponsors .section-label { justify-content: center; color: var(--ochre); }
+        #sponsors .section-label::before { display: none; }
+        #sponsors .section-title { max-width: none; margin-left: auto; margin-right: auto; text-align: center; }
+        .sponsor-text { font-size: 1.25rem; color: var(--text-muted); max-width: 550px; margin: 1.5rem auto; line-height: 1.8; }
+        .sponsor-logo-display { margin: 2rem auto; display: inline-block; padding: 2rem 4rem; border: 1px solid var(--border-strong); }
+        .sponsor-logo-display .sponsor-tier { font-family: 'Space Mono', monospace; font-size: 0.65rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--ochre); margin-bottom: 0.75rem; }
+        .btn-sponsor { display: inline-block; margin-top: 1.5rem; padding: 1.25rem 3rem; background: transparent; border: 1px solid var(--white); color: var(--white); font-family: 'Space Mono', monospace; font-size: 0.85rem; letter-spacing: 0.2em; text-transform: uppercase; text-decoration: none; transition: all 0.3s ease; }
+        .btn-sponsor:hover { background: var(--white); color: var(--bg); }
+
+        /* ── CONTACT ── */
+        #contact { background: var(--bg-alt); padding: 6rem 4rem; text-align: center; }
+        .contact-email { font-family: 'Cormorant Garamond', serif; font-size: clamp(1.6rem, 4vw, 3.2rem); font-style: italic; color: var(--text-bright); text-decoration: none; position: relative; display: inline-block; }
+        .contact-email::after { content:''; position: absolute; bottom: 0; left: 0; width:100%; height: 2px; background: var(--vermillion); transform: scaleX(0); transition: transform 0.4s ease; }
+        .contact-email:hover::after { transform: scaleX(1); }
+
+        /* ── FOOTER ── */
+        footer { background: var(--bg); color: var(--white); padding: 3rem 4rem; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 2rem; border-top: 1px solid var(--border); }
+        .footer-left { font-family: 'Space Mono', monospace; font-size: 0.75rem; color: var(--text-muted); }
+        .footer-logo { font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.2em; color: var(--text-bright); }
+        .footer-right { text-align: right; }
+        .footer-right a { font-family: 'Space Mono', monospace; font-size: 0.8rem; color: var(--ochre); text-decoration: none; }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 1024px) {
+            section { padding: 4rem 2rem; }
+            #challenges { padding: 4rem 2rem; }
+            #about { grid-template-columns: 1fr; }
+            .about-visual { height: 400px; order: -1; }
+            .manifesto { grid-template-columns: 1fr; }
+            .manifesto-wrap { padding: 0 2rem 3rem; }
+            .topics-grid { grid-template-columns: repeat(2, 1fr); }
+            .dates-layout { grid-template-columns: 1fr; }
+            .date-highlight { position: relative; top: 0; }
+            .tracks-container, .challenge-tracks-grid { grid-template-columns: 1fr; }
+            .track:first-child { border-right: none; border-bottom: 1px solid var(--border-strong); }
+            .challenge-track-card:first-child { border-right: none; border-bottom: 1px solid var(--border-strong); }
+            .speakers-grid { grid-template-columns: repeat(2, 1fr); }
+            .organizers-grid { grid-template-columns: repeat(2, 1fr); }
+            .awards-grid { grid-template-columns: 1fr; }
+            .challenge-figure-row { grid-template-columns: 1fr; }
+            .pc-header { flex-direction: column; text-align: center; }
+        }
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hero-meta { flex-direction: column; gap: 1rem; }
+            .topics-grid { grid-template-columns: 1fr; }
+            .section-number { font-size: 4rem; right: 2rem; }
+            .speakers-grid, .organizers-grid { grid-template-columns: 1fr; }
+            footer { grid-template-columns: 1fr; text-align: center; }
+            .footer-right { text-align: center; }
+            .submission-banner { padding: 2rem 1.5rem; }
+            .challenge-timeline { grid-template-columns: 1fr; }
+            .challenge-timeline-item:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+            .challenge-figure .img-frame { height: 260px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="cursor-dot" id="cursor"></div>
+    <nav>
+        <div class="nav-logo">AI4VA</div>
+        <ul class="nav-links">
+            <li><a href="#about">About</a></li><li><a href="#topics">Topics</a></li><li><a href="#dates">Dates</a></li><li><a href="#participate">Participate</a></li><li><a href="#challenges">Challenges</a></li><li><a href="#awards">Awards</a></li><li><a href="#speakers">Speakers</a></li><li><a href="#committee">Committee</a></li><li><a href="#sponsors">Sponsors</a></li><li><a href="#contact">Contact</a></li>
+        </ul>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-canvas"><div class="paint-stroke"></div><div class="paint-stroke"></div><div class="paint-stroke"></div><div class="paint-stroke"></div></div>
+        <div class="hero-content">
+            <p class="hero-eyebrow">MICCAI 2026 — Abu Dhabi, United Arab Emirates</p>
+            <h1 class="hero-title">Breast Imaging Group MRI Challenge</h1>
+            <div class="hero-meta"><span><span class="dot"></span>October 4, 2026</span><span><span class="dot"></span>ADNEC Center</span><span><span class="dot"></span>Half-Day Workshop</span></div>
+        </div>
+        <div class="scroll-indicator">SCROLL</div>
+    </section>
+
+    <section id="about">
+        <span class="section-number">01</span>
+        <div class="about-visual">
+            <div class="art-frame"><img src="assets/images/girl-with-mandolin.jpg" alt="Picasso - Girl with a Mandolin (1910)" /><span class="art-frame-label">Abstraction</span></div>
+            <div class="art-frame"><img src="assets/images/heritage.jpg" alt="Leonardo da Vinci Museum Exhibition" /><span class="art-frame-label">Heritage</span></div>
+            <div class="art-frame"><img src="assets/images/whaam-offset-lithograph-or-roy-lichtensteinproduct-type_2400x.jpg" alt="Roy Lichtenstein - Whaam!" /><span class="art-frame-label">Narrative</span></div>
+        </div>
+        <div class="about-content">
+            <span class="section-label">About</span>
+            <h2 class="section-title">Where machines learn to perceive abstraction</h2>
+            <p>The Breast Imaging Group Challenge.....</p>
+            <p>..................</p>
+        </div>
+    </section>
+
+    <!-- <div class="manifesto-wrap">
+        <div class="manifesto">
+            <div class="manifesto-card"><span class="manifesto-number">01</span><h3>Perception</h3><p>................</p></div>
+            <div class="manifesto-card"><span class="manifesto-number">02</span><h3>Authenticity</h3><p>..............</p></div>
+            <div class="manifesto-card"><span class="manifesto-number">03</span><h3>Exchange</h3><p>................</p></div>
+        </div>
+    </div> -->
+
+    <!-- <section id="topics">
+        <span class="section-number">02</span>
+        <span class="section-label">Research Areas</span>
+        <h2 class="section-title">Topics of Interest</h2>
+        <div style="overflow: hidden; margin-top: 2rem;">
+            <div class="topics-marquee">
+                <span class="topic-pill">Segmentation</span><span class="topic-pill">Depth Estimation </span><span class="topic-pill">Detection </span><span class="topic-pill">Vision-L / Multimodal Learning</span><span class="topic-pill">Generative Models</span><span class="topic-pill">Provenance Tracking</span><span class="topic-pill">Computer Vision </span><span class="topic-pill">AI </span><span class="topic-pill">Image </span>
+                <span class="topic-pill">Segmentation</span><span class="topic-pill">Depth Estimation </span><span class="topic-pill">Detection </span><span class="topic-pill">Vision-L / Multimodal Learning</span><span class="topic-pill">Generative Models</span><span class="topic-pill">Provenance Tracking</span><span class="topic-pill">Computer Vision </span><span class="topic-pill">AI </span><span class="topic-pill">Image </span>
+            </div>
+        </div>
+        <div class="topics-grid">
+            <div class="topic-cell"><span class="topic-index">001</span><span class="topic-name">Robust </span></div><div class="topic-cell"><span class="topic-index">002</span><span class="topic-name">Saliency detection in narrative visual forms</span></div><div class="topic-cell"><span class="topic-index">003</span><span class="topic-name">Vision–language alignment in art interpretation</span></div><div class="topic-cell"><span class="topic-index">004</span><span class="topic-name">Generative models & 3D modeling from artworks</span></div><div class="topic-cell"><span class="topic-index">005</span><span class="topic-name">Provenance tracking & authenticity verification</span></div><div class="topic-cell"><span class="topic-index">006</span><span class="topic-name">Watermark robustness in AI-generated art</span></div><div class="topic-cell"><span class="topic-index">007</span><span class="topic-name">Computer vision for museum analysis & digitization</span></div><div class="topic-cell"><span class="topic-index">008</span><span class="topic-name">Art restoration & preservation using computer vision</span></div><div class="topic-cell"><span class="topic-index">009</span><span class="topic-name">AI ethics, authorship & responsible AI in creative contexts</span></div><div class="topic-cell"><span class="topic-index">010</span><span class="topic-name">Multimodal reasoning in art & cultural heritage</span></div><div class="topic-cell"><span class="topic-index">011</span><span class="topic-name">Art & animation</span></div><div class="topic-cell"><span class="topic-index">012</span><span class="topic-name">Image composition for visual arts</span></div><div class="topic-cell"><span class="topic-index">013</span><span class="topic-name">Any AI × Visual Art intersection</span></div>
+        </div>
+    </section> -->
+
+    <section id="dates">
+        <span class="section-number">03</span><span class="section-label">Timeline</span>
+        <h2 class="section-title">Important Dates</h2>
+        <div class="dates-layout">
+            <div class="date-highlight"><div class="date-highlight-box"><span class="date-month">June</span><span class="date-day">4</span><span class="date-year">2026 (tentative)</span><div class="date-location">Colorado Convention Center<br>Denver, Colorado<br>United States</div></div></div>
+            <div class="timeline">
+                <div class="timeline-section"><h3 class="timeline-section-title"></h3><div class="timeline-item"><span class="timeline-date">April 10, 2026</span><div class="timeline-content"><h4>Website Up</h4><p>Friday, 9:00 AM</p></div></div><div class="timeline-item"><span class="timeline-date">TBA, 2026</span><div class="timeline-content"><h4>Dataset Documentation Release</h4><p>...</p></div></div><div class="timeline-item"><span class="timeline-date">TBA, 2026</span><div class="timeline-content"><h4>Dataset Release</h4><p>....</p></div></div><div class="timeline-item"><span class="timeline-date">TBA, 2026</span><div class="timeline-content"><h4>First Phase Submissions</h4><p>....</p></div></div></div>
+                <!-- <div class="timeline-section"><h3 class="timeline-section-title">Extended Abstracts (Non-Archival)- Accepting Submissions</h3><div class="timeline-item"><span class="timeline-date">Apr 13, 2026</span><div class="timeline-content"><h4>Extended Abstract Submission</h4><p>Monday, 11:59 PM AoE</p></div></div><div class="timeline-item"><span class="timeline-date">Apr 30, 2026</span><div class="timeline-content"><h4>Acceptance Notification</h4><p>Thursday, 11:59 PM AoE — no camera-ready required</p></div></div></div>
+                <div class="timeline-section"><h3 class="timeline-section-title">PortraitCraft Challenge- Accepting Submissions</h3><div class="timeline-item"><span class="timeline-date">Apr 5, 2026</span><div class="timeline-content"><h4>Challenge Start</h4><p>Competition opens on CodaBench</p></div></div><div class="timeline-item"><span class="timeline-date">May 17, 2026</span><div class="timeline-content"><h4>Challenge End</h4><p>Final submission deadline</p></div></div></div>
+                <div class="timeline-item" style="border-bottom: none; background: rgba(255,255,255,0.02); padding: 1.25rem;"><span class="timeline-date">Jun 4 PM session (Tentative)</span><div class="timeline-content"><h4>Workshop Day</h4><p>AI4VA @ CVPR 2026, Denver</p></div></div> -->
+                <div class="timeline-notice">All deadlines are CET (Central European Time (CET))....</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="participate">
+        <span class="section-number">04</span><span class="section-label">Call for Papers</span>
+        <h2 class="section-title">Submit Your Work</h2>
+        <div class="tracks-container">
+            <div class="track"><span class="track-number">Track I </span><h2>Image-Based</h2><p> ....</p><div class="track-specs"><dl><dt>Length</dt><dd>5–8 pages</dd><dt>Format</dt><dd>... Style</dd><dt>Review</dt><dd>Double-blind</dd><dt>Supplementary</dt><dd>Optional</dd></dl></div></div>
+            <div class="track"><span class="track-number">Track II</span><h2>Multimodal-Based</h2><p>.....</p><div class="track-specs"><dl><dt>Length</dt><dd>5-8 pages</dd><dt>Format</dt><dd>... Style</dd><dt>Review</dt><dd>Double-blind</dd><dt>Supplementary</dt><dd>Optional</dd></dl></div></div>
+        </div>
+        <div class="submission-banner"><span class="submission-banner-label">Submission Portal</span><h4>Submit via OpenReview</h4><p>There are two tracks — please submit to the appropriate track (Image-Based or Multimodal-Based) on the submission site.</p><div class="track-note">⚠ Select the correct track when submitting</div><br><a href="https://...." target="_blank" class="btn-submit">Submit on OpenReview ↗</a></div>
+        <!-- <div class="presentation-info"><div class="presentation-icon">◎</div><div><h4>Presentation Guidelines</h4><p>All posters: portrait orientation, max 90 × 180 cm. All accepted papers present a poster. Selected oral spotlight presenters: 7 min talk + Q&A, plus poster presentation.</p></div></div> -->
+    </section>
+
+    <section id="challenges">
+        <span class="section-number">05</span><span class="section-label">Grand Challenge</span>
+        <!-- <h2 class="section-title">PortraitCraft Challenge</h2> -->
+        <p class="challenges-intro">BIG MRI Challenge..... (<strong>PortraitCraft</strong>) features two competitive tracks that push the boundaries of .... Participants are invited to develop novel methods for analysing ...</p>
+        <!-- <div class="pc-header"><img src="assets/images/pc-logo-v2.png" alt="PortraitCraft logo" /><div class="pc-header-text"><h3>PortraitCraft Challenge</h3><p>Image Composition<span class="pc-dot"></span>Portrait Understanding &amp; Generation</p></div></div> -->
+        <!-- <div class="challenge-subnav"><a href="#challenge-dataset">Dataset</a><a href="#challenge-schedule">Schedule</a><a href="#challenge-tracks-overview">Tracks Overview</a><a href="#challenge-track1">Track 1 — Understanding</a><a href="#challenge-track2">Track 2 — Generation</a></div> -->
+
+        <div class="challenge-subsection" id="challenge-dataset"><span class="challenge-subsection-label">Benchmark</span><h3>Dataset Introduction</h3><p><strong>PortraitCraft</strong> is a benchmark dataset for portrait composition understanding and portrait composition generation. It is designed to support models in learning and evaluating composition quality in portrait images. The dataset focuses on images with humans as the primary subjects and covers a wide range of scenarios, including single-person and multi-person portraits, as well as half-body and full-body compositions. It emphasizes key composition factors such as subject prominence, pose quality, image layout, and overall visual atmosphere.</p><p>PortraitCraft supports two task directions: portrait composition understanding and portrait composition generation. The dataset is constructed through large-model-assisted filtering combined with evaluation by professional designers, ensuring high-quality samples and fine-grained composition annotations.</p><h4>Dataset &amp; Baseline</h4><ul><li><strong>Download.</strong> The benchmark is hosted on Hugging Face: <a href="https://huggingface.co/datasets/zijielou/PortraitCraft" target="_blank">zijielou/PortraitCraft</a>.</li><li><strong>Baseline code.</strong> Official Qwen-VL fine-tuning framework: <a href="https://github.com/yytang25/qwen-vl-ft" target="_blank">github.com/yytang25/qwen-vl-ft</a>.</li></ul></div>
+        <div class="challenge-divider"></div>
+
+        <!-- <div class="challenge-subsection" id="challenge-schedule"><span class="challenge-subsection-label">Timeline</span><h3>Challenge Period</h3><p>Key dates for the PortraitCraft challenge. See the <a href="#dates">workshop timeline</a> for full paper and workshop dates.</p><dl class="challenge-timeline"><div class="challenge-timeline-item"><dt>Start</dt><dd>April 5, 2026</dd></div><div class="challenge-timeline-item"><dt>End</dt><dd>May 17, 2026</dd></div></dl></div>
+        <div class="challenge-divider"></div> -->
+
+        <div class="challenge-subsection" id="challenge-tracks-overview"><span class="challenge-subsection-label">Competition</span><h3>Two Challenge Tracks</h3><p>The challenge is organized into two complementary tracks. Participants may choose to focus on one or both.</p><div class="challenge-tracks-grid"><div class="challenge-track-card"><span class="challenge-track-number">Challenge Track 1</span><h3>Image-Based Risk Prediction</h3><p class="challenge-track-desc">Given ....</p><a href="https://...." target="_blank" class="challenge-track-link">CodaBench: Track 1 competition →</a></div><div class="challenge-track-card"><span class="challenge-track-number">Challenge Track 2</span><h3>Portrait Composition Generation</h3><p class="challenge-track-desc">Given structured composition descriptions, generate portrait images that accurately realize the specified layout and aesthetic intent.</p><a href="https://www.codabench.org/competitions/15386/" target="_blank" class="challenge-track-link">CodaBench: Track 2 competition →</a></div></div></div>
+        <div class="challenge-divider"></div>
+
+        <div class="challenge-subsection" id="challenge-track1"><span class="challenge-subsection-label">Track 1</span><h3>Image-Based</h3><p><strong>Participate:</strong> <a href="https:....." target="_blank">Track 1 on GC</a></p><h4>Introduction</h4><p>It aims to .... els that not only estimate how good a portrait is, but also explain why it is good and demonstrate that they truly understand the image.</p><h4>Model Input and Output</h4><p>In this track, the model takes...</p><p><strong>(1) Training stage.</strong> The training data for Track 1 are provided in the form of image-text pairs. Each training sample consists of a portrait image and a corresponding text description. The text includes an overall composition score, the scores of 13 composition attributes, and explanations of these attribute-level judgments.</p><p><strong>(2) Test stage.</strong> During testing, the model receives a single portrait image as input and is required to produce three types of outputs:</p><ul><li><strong>Overall composition score.</strong> The model should predict a single score that reflects the overall quality of the portrait composition.</li><li><strong>Fine-grained attribute judgments.</strong> The model should provide ternary judgments for dozens of predefined composition attributes, indicating whether each attribute is good or poor for the given image.</li><li><strong>Visual question answering.</strong> The model should answer a carefully designed multiple-choice question related to the image, requiring genuine understanding of the image content.</li></ul><p>Together, these three outputs assess global composition evaluation, attribute-level composition reasoning, and detailed visual understanding within a unified framework.</p><h4>Evaluation Metrics</h4><p>Submissions will be evaluated using a unified score that jointly considers performance across all three required outputs. The exact weighting and implementation details of the evaluation protocol are not disclosed to ensure fairness and robustness of the benchmark.</p><h4>Example</h4><p>The pair below illustrates an input portrait alongside a visualization of annotation results, highlighting the kinds of fine-grained composition cues the challenge considers.</p><div class="challenge-disclaimer">This figure is for illustration purposes only. Please refer to the official challenge documentation for detailed evaluation specifications.</div><div class="challenge-figure-row"><figure class="challenge-figure"><div class="img-frame"><img src="assets/images/track1-input.jpeg" alt="Example input portrait for Track 1" loading="lazy" /></div><figcaption>Figure 1 — Input Image</figcaption></figure><figure class="challenge-figure"><div class="img-frame"><img src="assets/images/track1-annotation.png" alt="Annotation results for Track 1" loading="lazy" /></div><figcaption>Figure 2 — Annotation Results</figcaption></figure></div></div>
+        <div class="challenge-divider"></div>
+
+        <div class="challenge-subsection" id="challenge-track2"><span class="challenge-subsection-label">Track 2</span><h3>Multimodal</h3><p><strong>Participate:</strong> <a href="https://...." target="_blank">Track 2 on GC</a></p><h4>Introduction</h4><p>..................</p><h4>Model Input and Output</h4><p>In this track, the model takes...:</p><p><strong>(1) Training stage.</strong> Participants are provided with portrait images paired with structured textual descriptions that focus on composition and aesthetic attributes such as subject placement, spatial organization, visual center, negative space, and overall composition style.</p><p><strong>(2) Test stage.</strong> During testing, only structured composition descriptions are provided. Participants are required to generate portrait images that reflect the specified composition requirements.</p><h4>Evaluation Metrics</h4><p>The final score is computed based on the consistency between the generated images and the target structured composition descriptions. The evaluation focuses on whether the generated results accurately reflect the key composition and aesthetic characteristics specified in the descriptions.</p><h4>Example</h4><p>Figure 3 shows a reference portrait; Figure 4 shows an image regenerated from a structured composition description.</p><div class="challenge-disclaimer">This figure is for illustration purposes only. Please refer to the official challenge documentation for detailed evaluation specifications.</div><div class="challenge-figure-row"><figure class="challenge-figure"><div class="img-frame"><img src="assets/images/track2-original.jpeg" alt="Original reference portrait for Track 2" loading="lazy" /></div><figcaption>Figure 3 — Original Image</figcaption></figure><figure class="challenge-figure"><div class="img-frame"><img src="assets/images/track2-generated.jpeg" alt="Regenerated portrait" loading="lazy" /></div><figcaption>Figure 4 — Regenerated Image</figcaption></figure></div><h4>Structured Description (Excerpt)</h4><div class="challenge-prompt"><p>Full-body portrait photograph of a young woman dancing gracefully on a long wooden pier extending into shallow turquoise sea water at sunset.</p><p>Strong central perspective composition. The pier forms leading lines toward the horizon. The subject is positioned near the center axis of the frame. She stands on one foot with the other leg lifted and bent, arms extended outward in an expressive balanced pose.</p><p>A soft, faint rainbow appears diagonally across the sky from the upper-right corner to the lower-left region of the frame, forming a subtle diagonal compositional structure that enhances visual flow without dominating the scene.</p><p class="prompt-ellipsis">…</p><p class="prompt-tags">professional photography, cinematic lighting, diagonal composition, leading lines, central perspective symmetry, elegant movement, balanced composition, subtle rainbow accent, high aesthetic quality, sharp details, realistic style.</p></div></div>
+
+        <!-- <div class="challenge-co-org"><span>Co-organised by</span><strong>Meitu</strong></div> -->
+    </section>
+
+    <!-- <section id="awards"><span class="section-number">06</span><span class="section-label">Recognition</span><h2 class="section-title">Workshop Awards</h2><div class="awards-grid"><div class="award-card"><div class="award-icon">🏆</div><h3>Best Paper Award</h3><div class="award-amount">$1,000</div><p>Awarded to the highest-quality full paper submission demonstrating novelty, rigour, and impact at the intersection of AI and visual arts.</p><div class="award-sponsor-tag">Sponsored by Meitu</div></div><div class="award-card"><div class="award-icon">🎖️</div><h3>Best Poster Award</h3><div class="award-amount">$500</div><p>Awarded for an outstanding poster presentation that effectively communicates innovative research to the workshop audience.</p><div class="award-sponsor-tag">Sponsored by Meitu</div></div></div><div class="awards-ceremony-note">All winners will be felicitated in the workshop award ceremony with certificates.</div></section> -->
+
+    <!-- <section id="speakers"><span class="section-number">07</span><span class="section-label">Keynotes</span><h2 class="section-title">Invited Speakers</h2><div class="speakers-grid"><div class="speaker-card"><span class="speaker-status confirmed">Confirmed</span><div class="speaker-avatar"><img src="assets/images/Hadar.jpeg" alt="Hadar Averbuch-Elor" /></div><h4 class="speaker-name"><a href="https://www.hadarelor.com/" target="_blank">Hadar Averbuch-Elor</a></h4><p class="speaker-affiliation">Cornell University & Cornell Tech</p><p class="speaker-bio">Assistant Professor in Computer Science. Her research combines images, language and 3D geometry for building multimodal perception systems that can handle the full complexity of the real 3D world.</p></div><div class="speaker-card"><span class="speaker-status confirmed">Confirmed</span><div class="speaker-avatar"><img src="assets/images/ranjay_krishna.jpeg" alt="Ranjay Krishna" /></div><h4 class="speaker-name"><a href="https://www.ranjaykrishna.com/index.html" target="_blank">Ranjay Krishna</a></h4><p class="speaker-affiliation">University of Washington & Allen Institute for AI</p><p class="speaker-bio">Assistant Professor at the Allen School. Co-directs the RAIVN lab at UW and directs the PRIOR team at AI2. His research lies at the intersection of computer vision, NLP, robotics, and HCI.</p></div><div class="speaker-card"><span class="speaker-status confirmed">Confirmed</span><div class="speaker-avatar"><img src="assets/images/luba_elliott.png" alt="Luba Elliott" /></div><h4 class="speaker-name"><a href="https://elluba.com/about/" target="_blank">Luba Elliott</a></h4><p class="speaker-affiliation">Curator & Researcher, Creative AI</p><p class="speaker-bio">Curator, producer and researcher specialising in AI in the creative industries. Honorary Senior Research Fellow at UCL Centre for Artificial Intelligence.</p></div><div class="speaker-card"><span class="speaker-status pending">TBC</span><div class="speaker-avatar">?</div><h4 class="speaker-name">To Be Confirmed</h4><p class="speaker-affiliation">TBC</p><p class="speaker-bio">The fourth keynote speaker will be announced soon. Please check back for updates.</p></div></div></section> -->
+
+    <section id="committee"><span class="section-number">08</span><span class="section-label">Organizers</span><h2 class="section-title">Organizing Committee</h2><div class="organizers-grid"><div class="organizer-card"><img class="organizer-photo" src="assets/images/deblina_bhattacharjee.jpeg" alt="Deblina Bhattacharjee" /><span class="organizer-role">Lead Organizer</span><h4 class="organizer-name">Deblina Bhattacharjee</h4><p class="organizer-affiliation">Assistant Professor, University of Bath, UK (Publicity Co-Chair, CVPR)</p></div><div class="organizer-card"><img class="organizer-photo" src="assets/images/yin_zhang.jpeg" alt="Yin Zhang" /><span class="organizer-role">Organizer</span><h4 class="organizer-name"><a href="https://www.linkedin.com/in/yinzhang-unige/" target="_blank">Iris (Yin) Zhang</a></h4><p class="organizer-affiliation">PhD in Translation Studies, University of Geneva</p></div><div class="organizer-card"><img class="organizer-photo" src="assets/images/bingchen_zhao.png" alt="Bingchen Zhao" /><span class="organizer-role">Organizer</span><h4 class="organizer-name"><a href="https://bzhao.me/" target="_blank">Bingchen Zhao</a></h4><p class="organizer-affiliation">PhD in Computer Science, University of Edinburgh</p></div><div class="organizer-card"><img class="organizer-photo" src="assets/images/Haoxiang_Li.jpeg" alt="Haoxiang Li" /><span class="organizer-role">Challenge Co-Organizer</span><h4 class="organizer-name"><a href="https://resume.haoxiang.org" target="_blank">Haoxiang Li</a></h4><p class="organizer-affiliation">Meitu Inc. (Pixocial Technology)</p></div><div class="organizer-card"><img class="organizer-photo" src="assets/images/Luoqi_Li.jpeg" alt="Luoqi Liu" /><span class="organizer-role">Challenge Co-Organizer</span><h4 class="organizer-name"><a href="https://scholar.google.com/citations?user=nw4XTwMAAAAJ&hl=en" target="_blank">Luoqi Liu</a></h4><p class="organizer-affiliation">VP of Technology, Meitu Inc.</p></div></div></section>
+
+    <section id="sponsors"><span class="section-label">Support</span><h2 class="section-title">Sponsors</h2><p class="sponsor-text">We gratefully acknowledge the generous support of our sponsors who make this workshop and its awards possible.</p><div class="sponsor-logo-display"><div class="sponsor-tier">Workshop Sponsor</div><img src="assets/images/meitu_logo.png" alt="Meitu" style="max-height:50px"/></div><br><p class="sponsor-text">Interested in supporting the intersection of AI and visual arts? We welcome partners who share our vision for trustworthy, human-aligned AI in creative domains.</p><a href="mailto:db2466@bath.ac.uk" class="btn-sponsor">Get in Touch</a></section>
+
+    <section id="contact"><span class="section-label" style="justify-content: center;">Contact</span><h2 class="section-title" style="text-align: center; max-width: none;">Questions?</h2><a href="mailto:db2466@bath.ac.uk" class="contact-email">db2466[at]bath[dot]ac[dot]uk</a></section>
+
+    <footer><div class="footer-left">© 2026 BIG-MRI Challenge</div><div class="footer-logo">BIG-MRI</div><div class="footer-right"><a href="https://conferences.miccai.org/2026/en/default.asp" target="_blank">MICCAI 2026 ↗</a></div></footer>
+
+    <script>
+        const cursor=document.getElementById('cursor');let mouseX=0,mouseY=0,cursorX=0,cursorY=0;document.addEventListener('mousemove',e=>{mouseX=e.clientX;mouseY=e.clientY});function animateCursor(){cursorX+=(mouseX-cursorX)*0.15;cursorY+=(mouseY-cursorY)*0.15;cursor.style.left=cursorX+'px';cursor.style.top=cursorY+'px';requestAnimationFrame(animateCursor)}animateCursor();
+        document.querySelectorAll('a[href^="#"]').forEach(a=>{a.addEventListener('click',function(e){e.preventDefault();const t=document.querySelector(this.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth',block:'start'})})});
+        const observer=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){entry.target.style.opacity='1';entry.target.style.transform='translateY(0)'}})},{threshold:0.1,rootMargin:'0px 0px -80px 0px'});
+        document.querySelectorAll('.manifesto-card,.topic-cell,.timeline-item,.track,.speaker-card,.organizer-card,.award-card,.challenge-track-card,.challenge-figure,.challenge-subsection').forEach(el=>{el.style.opacity='0';el.style.transform='translateY(30px)';el.style.transition='opacity 0.8s ease, transform 0.8s ease';observer.observe(el)});
+        document.addEventListener('mousemove',e=>{const strokes=document.querySelectorAll('.paint-stroke');const x=(e.clientX/window.innerWidth-0.5)*30;const y=(e.clientY/window.innerHeight-0.5)*30;strokes.forEach((s,i)=>{const sp=(i+1)*0.5;s.style.transform=`translate(${x*sp}px,${y*sp}px)`})});
+    </script>
+</body>
+</html>
